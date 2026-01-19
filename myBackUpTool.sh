@@ -17,7 +17,7 @@ THEME_FILE="/tmp/myBackUpTool_theme.rc"
 DEFAULT_REMOTE="gdrive:myBackUpTool_Data"
 DEFAULT_THEME="matrix"
 DEFAULT_IGNORES="*/node_modules/* */.next/*"
-VERSION="v1.2.0"
+VERSION="v1.2.2"
 
 # Create config files
 if [ ! -f "$CONFIG_FILE" ]; then touch "$CONFIG_FILE"; fi
@@ -289,7 +289,7 @@ info_section() {
     local r=$(read_setting "REMOTE" "$DEFAULT_REMOTE")
     local t=$(read_setting "THEME" "matrix")
     local v="$VERSION"
-    dialog --title "About" --msgbox "myBackUpTool $v\n\nCreated By: not_jarod\n\nTheme: $t\nRemote: $r\n\nFeatures: Multi-threaded, Exclusion Manager, Matrix UI." 15 50
+    dialog --title "About" --msgbox "myBackUpTool $v\n\nCreated By: not_jarod\nSource: https://github.com/a2-stuff/myBackUpTool\n\nTheme: $t\nRemote: $r\n\nFeatures: Multi-threaded, Exclusion Manager, Matrix UI." 15 65
 }
 
 # ------------------------------------------------------------------------------
@@ -366,67 +366,64 @@ perform_backup() {
         : > "$job_log"
 
         if [ "$mode" == "interactive" ]; then
-            # Animated Progress Bar (Gauge) + Log
-            # We run the heavy lifting in background and update gauge
+            # v1.2.2 Unified Dashboard: Single Gauge with Streaming Logs
+            : > "$job_log"
+            touch "${TEMP_DIR}/progress.flag"
+            
+            # 1. Start Worker in Background (writes to log)
             (
-                echo "10" 
-                echo "XXX"
-                echo "Batch $counter of $total: $dirn"
-                echo "Pre-flight checks..."
-                echo "XXX"
-                sleep 1
-
-                # Clean path for zip (relative)
+                echo "[$(date +%T)] Init: Batch $counter of $total" >> "$job_log"
                 parent_dir=$(dirname "$src")
                 base_name=$(basename "$src")
                 
-                echo "30"
-                echo "XXX"
-                echo "Compressing: $base_name" 
-                echo "XXX"
-                
-                # Zip using relative path
-                # cd to parent, zip directory
-                if (cd "$parent_dir" && zip -r -q "$zp" "$base_name" "${args[@]}"); then
-                    echo "60"
-                    echo "XXX"
-                    echo "Uploading to cloud..."
-                    echo "XXX"
-                    
-                    if rclone copy "$zp" "$dest"; then
-                         echo "90"
-                         echo "XXX"
-                         echo "Cleaning up..."
-                         echo "XXX"
+                echo "[$(date +%T)] Compressing $base_name..." >> "$job_log"
+                if (cd "$parent_dir" && zip -r -v "$zp" "$base_name" "${args[@]}" >> "$job_log" 2>&1); then
+                    echo "[$(date +%T)] Uploading to $dest..." >> "$job_log"
+                    if rclone copy -v "$zp" "$dest" >> "$job_log" 2>&1; then
                          rm -f "$zp"
-                         echo "100"
-                         echo "XXX"
-                         echo "Done: $dirn"
-                         echo "XXX"
-                         sleep 1
-                         exit 0
+                         echo "[$(date +%T)] Success: $dirn" >> "$job_log"
+                         echo "SUCCESS" > "${TEMP_DIR}/status.flag"
                     else
-                         echo "XXX"
-                         echo "Upload Failed!"
-                         echo "XXX"
-                         exit 1
+                         echo "[$(date +%T)] Upload FAILED" >> "$job_log"
+                         echo "FAIL" > "${TEMP_DIR}/status.flag"
                     fi
                 else
-                    echo "XXX"
-                    echo "Zip Failed!"
-                    echo "XXX"
-                    exit 1
+                    echo "[$(date +%T)] Zip FAILED" >> "$job_log"
+                    echo "FAIL" > "${TEMP_DIR}/status.flag"
                 fi
-            ) | dialog --title "Progress" --gauge "Job initialization..." 8 60 0
+                rm -f "${TEMP_DIR}/progress.flag"
+            ) &
+            bg_pid=$!
             
-            # Check exit status (pipeline hides it, rely on log if needed or assume user saw the gauge)
-             if [ ${PIPESTATUS[0]} -eq 0 ]; then
+            # 2. Main Loop: Feed Gauge with Log Tail
+            # We simulate progress % based on time or stages if we can't get real numbers
+            # or just pulse. Let's do a pulse visual.
+            local p=0
+            while [ -f "${TEMP_DIR}/progress.flag" ]; do
+                # Get last 15 lines of log
+                local logs=$(tail -n 15 "$job_log")
+                
+                # Update Gauge
+                echo "XXX"
+                echo "$p"
+                echo "$logs"
+                echo "XXX"
+                
+                # Pulse effect
+                p=$(( (p + 5) % 100 ))
+                sleep 0.5
+            done | dialog --title "Processing: $dirn ($counter/$total)" --gauge "Initializing..." 20 80 0
+
+            wait $bg_pid
+            
+            if [ "$(cat "${TEMP_DIR}/status.flag" 2>/dev/null)" == "SUCCESS" ]; then
                 log_message "Success: $dirn"
             else
                 log_message "Failure: $dirn"
-                dialog --msgbox "Error processing $dirn." 6 40
+                dialog --msgbox "Error processing $dirn. Check logs." 6 40
             fi
             
+            rm -f "${TEMP_DIR}/status.flag"
         else
             # Auto (Quiet)
              parent_dir=$(dirname "$src")

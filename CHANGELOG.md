@@ -1,5 +1,15 @@
 # Changelog
 
+## [v1.2.2] - 2026-01-19
+### Fixed
+- **UI Layout**: Solved "broken layout" issues by implementing a **Unified Dashboard**.
+- **Progress Display**: Logs are now streamed *inside* the progress bar gauge for a stable, single-window experience.
+
+## [v1.2.1] - 2026-01-19
+### Added
+- **Hybrid UI**: Experimental split-screen view (Logs + Gauge).
+- **Info**: Added GitHub repository link to About section.
+
 ## [v1.2.0] - 2026-01-19
 ### Added
 - **Animated Progress Bar**: Visual gauge showing step-by-step progress (Compressing -> Uploading -> Cleaning).
