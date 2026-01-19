@@ -7,7 +7,8 @@ A futuristic, automated backup utility for Linux with Google Drive integration.
 - **Unified Dashboard**: Real-time log streaming inside an animated progress bar.
 - **Smart Zipping**: Compresses folders individually with clean, relative paths.
 - **Expert Ignores**: Exclude heavy folders like `node_modules` or `.git` with a checklist UI.
-- **Scheduled Backups**: Built-in cron scheduler.
+- **Detailed Logging**: Captures specific error messages for easy debugging.
+- **Scheduled Backups**: Built-in cron scheduler managed via Settings.
 
 ## Installation
 1.  **Dependencies**:
@@ -24,6 +25,7 @@ A futuristic, automated backup utility for Linux with Google Drive integration.
 1.  **Cloud Setup**: Go to **Settings > Setup Cloud Access** and follow the wizard to add your Google Drive (name it `gdrive`).
 2.  **Select Remote**: Go to **Settings > Remote**, pick your provider, and optionally set a destination folder (default: `myBackUpTool_Data`).
 3.  **Add Directories**: Go to **Dirs > Add** and browse to the folders you want to back up.
+4.  **Automation**: Go to **Settings > Automation** to enable daily backups via cron.
 
 ## Compatibility
 This tool is designed to work on:

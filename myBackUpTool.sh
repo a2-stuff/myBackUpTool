@@ -17,7 +17,7 @@ THEME_FILE="/tmp/myBackUpTool_theme.rc"
 DEFAULT_REMOTE="gdrive:myBackUpTool_Data"
 DEFAULT_THEME="matrix"
 DEFAULT_IGNORES="*/node_modules/* */.next/*"
-VERSION="v1.2.2"
+VERSION="v1.3.0"
 
 # Create config files
 if [ ! -f "$CONFIG_FILE" ]; then touch "$CONFIG_FILE"; fi
@@ -237,7 +237,8 @@ settings_menu() {
     while true; do
         local th=$(read_setting "THEME" "matrix")
         local rem=$(read_setting "REMOTE" "$DEFAULT_REMOTE")
-        local cmd=$(dialog --title "Configuration" --menu "Settings:" 18 60 7 "THEME" "[$th]" "REMOTE" "[$rem]" "IGNORES" "Manage Ignores" "CLOUD_SETUP" "Setup Cloud Access" "BACK" "Back" 3>&1 1>&2 2>&3)
+        local rem=$(read_setting "REMOTE" "$DEFAULT_REMOTE")
+        local cmd=$(dialog --title "Configuration" --menu "Settings:" 18 60 7 "THEME" "[$th]" "REMOTE" "[$rem]" "IGNORES" "Manage Ignores" "SCHEDULE" "Automation" "CLOUD_SETUP" "Setup Cloud Access" "BACK" "Back" 3>&1 1>&2 2>&3)
         case $cmd in
             THEME)
                 local n=$(dialog --menu "Theme:" 15 40 6 "matrix" "Matrix" "retro" "Retro (Amber)" "cyberpunk" "Cyberpunk" "dracula" "Dracula" "oceanic" "Oceanic" "classic" "Classic" 3>&1 1>&2 2>&3)
@@ -279,6 +280,17 @@ settings_menu() {
                 rclone config
                 dialog --msgbox "Configuration wizard completed." 6 40
                 ;;
+            SCHEDULE)
+                 local sch_cmd=$(dialog --menu "Backup Scheduler" 15 50 6 "ENABLE" "Set/Edit Schedule" "DISABLE" "Disable Schedule" "STATUS" "Check Status" 3>&1 1>&2 2>&3)
+                 case $sch_cmd in
+                     ENABLE) schedule_backup ;;
+                     DISABLE) remove_schedule ;;
+                     STATUS) 
+                        local s=$(crontab -l 2>/dev/null | grep "$0")
+                        if [ -n "$s" ]; then dialog --msgbox "Active: $s" 6 60; else dialog --msgbox "No Backup Scheduled." 6 40; fi
+                        ;;
+                 esac
+                 ;;
             BACK) return ;;
             *) ;;
         esac
@@ -419,8 +431,11 @@ perform_backup() {
             if [ "$(cat "${TEMP_DIR}/status.flag" 2>/dev/null)" == "SUCCESS" ]; then
                 log_message "Success: $dirn"
             else
-                log_message "Failure: $dirn"
-                dialog --msgbox "Error processing $dirn. Check logs." 6 40
+                # Capture Error Detail
+                local err_msg=$(tail -n 1 "$job_log" | grep -v "Batch" | grep -v "XXX")
+                [ -z "$err_msg" ] && err_msg="Unknown Error. Check logs."
+                log_message "Failure: $dirn - $err_msg"
+                dialog --msgbox "Error processing $dirn.\n\nDetail: $err_msg" 8 60
             fi
             
             rm -f "${TEMP_DIR}/status.flag"
@@ -440,8 +455,8 @@ perform_backup() {
 
 schedule_backup() {
     local t=$(dialog --inputbox "Time:" 8 40 "03:00" 3>&1 1>&2 2>&3)
-    [ -n "$t" ] && (crontab -l 2>/dev/null | grep -v "$0" ; echo "${t:3:2} ${t:0:2} * * * /bin/bash $(realpath "$0") --backup-all") | crontab -
-    dialog --msgbox "Scheduled." 6 40
+    [ -n "$t" ] && (crontab -l 2>/dev/null | grep -v "$0" ; echo "${t:3:2} ${t:0:2} * * * /bin/bash $(realpath "$0") --backup-all >> ${LOG_FILE} 2>&1") | crontab -
+    dialog --msgbox "Scheduled for $t daily." 6 40
 }
 remove_schedule() {
     (crontab -l 2>/dev/null | grep -v "$0") | crontab -; dialog --msgbox "Removed." 6 40
@@ -462,9 +477,9 @@ setup_theme
 
 while true; do
     CHOICE=$(dialog --clear --backtitle "myBackUpTool $VERSION" --title "Main Menu" --menu "Select:" 17 60 7 \
-    1 "Backup" 2 "Dirs" 3 "Settings" 4 "Schedule" 5 "Stop Sched" 6 "Logs" 7 "Info" 8 "Exit" 3>&1 1>&2 2>&3)
+    1 "Backup" 2 "Dirs" 3 "Settings" 4 "Logs" 5 "Info" 6 "Exit" 3>&1 1>&2 2>&3)
     case $CHOICE in
-        1) perform_backup "interactive" ;; 2) manage_directories ;; 3) settings_menu ;; 4) schedule_backup ;;
-        5) remove_schedule ;; 6) view_logs ;; 7) info_section ;; 8) clear; break ;; *) clear; break ;;
+        1) perform_backup "interactive" ;; 2) manage_directories ;; 3) settings_menu ;; 4) view_logs ;;
+        5) info_section ;; 6) clear; break ;; *) clear; break ;;
     esac
 done

@@ -1,5 +1,10 @@
 # Changelog
 
+## [v1.3.0] - 2026-01-19
+### Added
+- **Smart Error Logging**: Failures now capture and log the specific error message (e.g., "403 Forbidden") to the persistent log file.
+- **Settings Automation**: Backup scheduling (Cron) moved to the Settings menu for better organization.
+
 ## [v1.2.2] - 2026-01-19
 ### Fixed
 - **UI Layout**: Solved "broken layout" issues by implementing a **Unified Dashboard**.
