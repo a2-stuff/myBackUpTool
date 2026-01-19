@@ -1,5 +1,15 @@
 # Changelog
 
+## [v1.5.0] - 2026-01-19
+### Added
+- **Telegram Notifications**: Get instant alerts when a backup completes successfully.
+- **Configurable Alerts**: Set your Bot Token and Chat ID directly in the **Settings > Notifications** menu.
+- **Detailed Reports**: Notifications include filename, timestamp, and remote path.
+
+## [v1.4.1] - 2026-01-19
+### Changed
+- **UX Polish**: Converted Settings Menu to use Numbered Tags (1-6) for faster keyboard navigation.
+
 ## [v1.4.0] - 2026-01-19
 ### Added
 - **New Themes**: Solarized Dark, Monokai Pro, and Synthwave '84.

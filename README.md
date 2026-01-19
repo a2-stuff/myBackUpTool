@@ -28,6 +28,7 @@ A futuristic, automated backup utility for Linux with Google Drive integration.
 2.  **Select Remote**: Go to **Settings > Remote**, pick your provider, and optionally set a destination folder (default: `myBackUpTool_Data`).
 3.  **Add Directories**: Go to **Dirs > Add** and browse to the folders you want to back up.
 4.  **Automation**: Go to **Settings > Automation** to enable daily backups via cron.
+5.  **Notifications**: Go to **Settings > Notifications** to configure Telegram alerts (Bot Token & Chat ID).
 
 ## Compatibility
 This tool is designed to work on:

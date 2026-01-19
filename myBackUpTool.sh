@@ -17,7 +17,7 @@ THEME_FILE="/tmp/myBackUpTool_theme.rc"
 DEFAULT_REMOTE="gdrive:myBackUpTool_Data"
 DEFAULT_THEME="matrix"
 DEFAULT_IGNORES="*/node_modules/* */.next/*"
-VERSION="v1.4.0"
+VERSION="v1.5.0"
 
 # Create config files
 if [ ! -f "$CONFIG_FILE" ]; then touch "$CONFIG_FILE"; fi
@@ -126,9 +126,6 @@ setup_theme() {
             button_inact="(BLACK,WHITE,OFF)"
             ;;
         solarized) # Base03/Yellow/Blue
-            screen="(YELLOW,BLUE,OFF)" # approximating base03 with blue? no, standard terms limit us. 
-            # Let's try Cyan background? No.
-            # Solarized Dark often maps to: Screen=Black (or dark grey), Text=Cyan/Green
             screen="(CYAN,BLACK,ON)"
             dialog="(WHITE,BLACK,OFF)"
             title="(YELLOW,BLACK,ON)"
@@ -178,7 +175,6 @@ inputbox_border_color = $border
 searchbox_color = $dialog
 searchbox_title_color = $title
 searchbox_border_color = $border
-position_indicator_color = $title
 menubox_color = $dialog
 menubox_border_color = $border
 item_color = $dialog
@@ -230,7 +226,7 @@ shutdown_animation() {
 # Helper Functions
 # ------------------------------------------------------------------------------
 check_dependencies() {
-    for cmd in dialog zip rclone; do
+    for cmd in dialog zip rclone curl; do
         if ! command -v $cmd &> /dev/null; then echo "Error: Missing $cmd"; exit 1; fi
     done
 }
@@ -238,6 +234,26 @@ check_dependencies() {
 log_message() {
     local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
     echo "[$timestamp] $1" >> "$LOG_FILE"
+}
+
+send_telegram_notification() {
+    local msg="$1"
+    local file_name="$2"
+    local bot_token=$(read_setting "TG_BOT_TOKEN" "")
+    local chat_id=$(read_setting "TG_CHAT_ID" "")
+
+    if [ -n "$bot_token" ] && [ -n "$chat_id" ]; then
+        local text="✅ <b>Backup Successful</b>%0A📂 File: $file_name%0A☁️ Remote: $CURRENT_REMOTE%0A🕒 Time: $(date)"
+        if [ "$msg" != "" ]; then text="$msg"; fi
+        
+        # Simple URL encoding (very basic)
+        text="${text// /%20}"
+        
+        curl -s -X POST "https://api.telegram.org/bot${bot_token}/sendMessage" \
+            -d chat_id="${chat_id}" \
+            -d text="${text}" \
+            -d parse_mode="HTML" >> "$LOG_FILE" 2>&1
+    fi
 }
 
 # ------------------------------------------------------------------------------
@@ -286,14 +302,21 @@ settings_menu() {
     while true; do
         local th=$(read_setting "THEME" "matrix")
         local rem=$(read_setting "REMOTE" "$DEFAULT_REMOTE")
-        local rem=$(read_setting "REMOTE" "$DEFAULT_REMOTE")
-        local cmd=$(dialog --title "Configuration" --menu "Settings:" 18 60 7 "THEME" "[$th]" "REMOTE" "[$rem]" "IGNORES" "Manage Ignores" "SCHEDULE" "Automation" "CLOUD_SETUP" "Setup Cloud Access" "BACK" "Back" 3>&1 1>&2 2>&3)
+        local cmd=$(dialog --title "Configuration" --menu "Settings:" 18 60 9 \
+            1 "Theme [$th]" \
+            2 "Remote [$rem]" \
+            3 "Manage Ignores" \
+            4 "Automation" \
+            5 "Notifications" \
+            6 "Setup Cloud Access" \
+            7 "Back" 3>&1 1>&2 2>&3)
         case $cmd in
-            THEME)
+            1)
                 local n=$(dialog --menu "Theme:" 15 50 8 "matrix" "Matrix" "retro" "Retro (Amber)" "cyberpunk" "Cyberpunk" "dracula" "Dracula" "oceanic" "Oceanic" "solarized" "Solarized Dark" "monokai" "Monokai Pro" "synthwave" "Synthwave '84" "classic" "Classic" 3>&1 1>&2 2>&3)
                 [ -n "$n" ] && save_setting "THEME" "$n" && CURRENT_THEME="$n" && setup_theme
                 ;;
-            REMOTE)
+            2)
+                local rlist=$(rclone listremotes)
                 if [ -n "$rlist" ]; then
                     local options=()
                     while read -r line; do options+=("$line" "Remote"); done <<< "$rlist"
@@ -317,19 +340,8 @@ settings_menu() {
                     [ -n "$n" ] && save_setting "REMOTE" "$n" && CURRENT_REMOTE="$n"
                 fi
                 ;;
-            IGNORES) manage_ignores ;;
-            CLOUD_SETUP)
-                clear
-                echo "---------------------------------------------------------"
-                echo " SYSTEM: Launching Cloud Configuration Wizard (rclone)   "
-                echo "---------------------------------------------------------"
-                echo "Follow instructions to add 'gdrive' or other remotes."
-                echo "Press ENTER to begin..."
-                read
-                rclone config
-                dialog --msgbox "Configuration wizard completed." 6 40
-                ;;
-            SCHEDULE)
+            3) manage_ignores ;;
+            4)
                  local sch_cmd=$(dialog --menu "Backup Scheduler" 15 50 6 "ENABLE" "Set/Edit Schedule" "DISABLE" "Disable Schedule" "STATUS" "Check Status" 3>&1 1>&2 2>&3)
                  case $sch_cmd in
                      ENABLE) schedule_backup ;;
@@ -479,6 +491,7 @@ perform_backup() {
             
             if [ "$(cat "${TEMP_DIR}/status.flag" 2>/dev/null)" == "SUCCESS" ]; then
                 log_message "Success: $dirn"
+                send_telegram_notification "" "$zn"
             else
                 # Capture Error Detail
                 local err_msg=$(tail -n 1 "$job_log" | grep -v "Batch" | grep -v "XXX")
@@ -492,7 +505,12 @@ perform_backup() {
             # Auto (Quiet)
              parent_dir=$(dirname "$src")
              base_name=$(basename "$src")
-             (cd "$parent_dir" && zip -r -q "$zp" "$base_name" "${args[@]}") && rclone copy "$zp" "$dest" && rm -f "$zp"
+             if (cd "$parent_dir" && zip -r -q "$zp" "$base_name" "${args[@]}") && rclone copy "$zp" "$dest"; then
+                 rm -f "$zp"
+                 send_telegram_notification "" "$zn"
+             else
+                 log_message "Auto Backup Failed for $dirn"
+             fi
         fi
         
         # Increment percentage
