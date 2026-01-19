@@ -1,0 +1,22 @@
+# Backups
+*.zip
+*.tar.gz
+*.tar
+*.bak
+*.rar
+
+# Config and secrets
+*.conf
+*.cfg
+.env
+secret*
+rclone.conf
+
+# Logs
+*.log
+logs/
+tmp/
+
+# OS generated files
+.DS_Store
+Thumbs.db
