@@ -1,5 +1,7 @@
 # myBackUpTool
 
+![myBackUpTool Demo](myBackUpTool.gif)
+
 A futuristic, automated backup utility for Linux with Google Drive integration.
 
 ## Features
