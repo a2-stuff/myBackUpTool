@@ -43,6 +43,9 @@ Change the look in **Settings > Theme**:
 - Retro (Amber/Black)
 - Dracula (Purple/Dark)
 - Oceanic (Cyan/Blue)
+- Solarized Dark (Yellow/Blue/Base03)
+- Monokai Pro (Pink/Green/Dark)
+- Synthwave '84 (Neon Purple/Blue)
 
 ---
 **Created by**: not_jarod

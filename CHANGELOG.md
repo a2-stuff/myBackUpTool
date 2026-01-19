@@ -1,5 +1,11 @@
 # Changelog
 
+## [v1.4.0] - 2026-01-19
+### Added
+- **New Themes**: Solarized Dark, Monokai Pro, and Synthwave '84.
+- **Animations**: Added "Boot Sequence" and "Shutdown Sequence" for a more immersive experience.
+- **Visual Polish**: Improved transitions between menus.
+
 ## [v1.3.0] - 2026-01-19
 ### Added
 - **Smart Error Logging**: Failures now capture and log the specific error message (e.g., "403 Forbidden") to the persistent log file.

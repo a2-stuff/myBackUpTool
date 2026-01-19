@@ -17,7 +17,7 @@ THEME_FILE="/tmp/myBackUpTool_theme.rc"
 DEFAULT_REMOTE="gdrive:myBackUpTool_Data"
 DEFAULT_THEME="matrix"
 DEFAULT_IGNORES="*/node_modules/* */.next/*"
-VERSION="v1.3.0"
+VERSION="v1.4.0"
 
 # Create config files
 if [ ! -f "$CONFIG_FILE" ]; then touch "$CONFIG_FILE"; fi
@@ -125,6 +125,33 @@ setup_theme() {
             button_act="(WHITE,RED,OFF)"
             button_inact="(BLACK,WHITE,OFF)"
             ;;
+        solarized) # Base03/Yellow/Blue
+            screen="(YELLOW,BLUE,OFF)" # approximating base03 with blue? no, standard terms limit us. 
+            # Let's try Cyan background? No.
+            # Solarized Dark often maps to: Screen=Black (or dark grey), Text=Cyan/Green
+            screen="(CYAN,BLACK,ON)"
+            dialog="(WHITE,BLACK,OFF)"
+            title="(YELLOW,BLACK,ON)"
+            border="(CYAN,BLACK,ON)"
+            button_act="(WHITE,MAGENTA,OFF)"
+            button_inact="(CYAN,BLACK,OFF)"
+            ;;
+        monokai) # Dark/Pink/Green
+            screen="(WHITE,BLACK,OFF)" # Plain dark
+            dialog="(WHITE,BLACK,OFF)"
+            title="(MAGENTA,BLACK,ON)"
+            border="(GREEN,BLACK,ON)"
+            button_act="(BLACK,MAGENTA,OFF)"
+            button_inact="(GREEN,BLACK,OFF)"
+            ;;
+        synthwave) # Deep Purple/Neon
+            screen="(MAGENTA,BLACK,ON)" # Can't do real purple bg in all terms, using Magenta Text on Black
+            dialog="(CYAN,BLACK,OFF)"
+            title="(YELLOW,BLACK,ON)"
+            border="(MAGENTA,BLACK,ON)"
+            button_act="(BLACK,CYAN,OFF)"
+            button_inact="(MAGENTA,BLACK,OFF)"
+            ;;
         *) ;;
     esac
 
@@ -175,6 +202,28 @@ searchbox_border2_color = $border
 menubox_border2_color = $border
 EOF
     export DIALOGRC="$THEME_FILE"
+}
+
+boot_animation() {
+    # Fake BIOS/boot sequence
+    local p=0
+    (
+        echo "10"; echo "XXX"; echo "Initializing Kernel..."; echo "XXX"; sleep 0.2
+        echo "20"; echo "XXX"; echo "Loading Modules..."; echo "XXX"; sleep 0.2
+        echo "40"; echo "XXX"; echo "Mounting Virtual Filesystems..."; echo "XXX"; sleep 0.2
+        echo "60"; echo "XXX"; echo "Checking Network Uplink..."; echo "XXX"; sleep 0.3
+        echo "80"; echo "XXX"; echo "Loading Configuration..."; echo "XXX"; sleep 0.2
+        echo "100"; echo "XXX"; echo "System Ready."; echo "XXX"; sleep 0.5
+    ) | dialog --title "myBackUpTool OS v1.4" --gauge "Booting..." 8 50 0
+}
+
+shutdown_animation() {
+    (
+        echo "10"; echo "XXX"; echo "Saving Session State..."; echo "XXX"; sleep 0.2
+        echo "50"; echo "XXX"; echo "Disconnecting Remotes..."; echo "XXX"; sleep 0.2
+        echo "100"; echo "XXX"; echo "Powering Down."; echo "XXX"; sleep 0.5
+    ) | dialog --title "Shutdown" --gauge "Exiting..." 8 50 0
+    clear
 }
 
 # ------------------------------------------------------------------------------
@@ -241,7 +290,7 @@ settings_menu() {
         local cmd=$(dialog --title "Configuration" --menu "Settings:" 18 60 7 "THEME" "[$th]" "REMOTE" "[$rem]" "IGNORES" "Manage Ignores" "SCHEDULE" "Automation" "CLOUD_SETUP" "Setup Cloud Access" "BACK" "Back" 3>&1 1>&2 2>&3)
         case $cmd in
             THEME)
-                local n=$(dialog --menu "Theme:" 15 40 6 "matrix" "Matrix" "retro" "Retro (Amber)" "cyberpunk" "Cyberpunk" "dracula" "Dracula" "oceanic" "Oceanic" "classic" "Classic" 3>&1 1>&2 2>&3)
+                local n=$(dialog --menu "Theme:" 15 50 8 "matrix" "Matrix" "retro" "Retro (Amber)" "cyberpunk" "Cyberpunk" "dracula" "Dracula" "oceanic" "Oceanic" "solarized" "Solarized Dark" "monokai" "Monokai Pro" "synthwave" "Synthwave '84" "classic" "Classic" 3>&1 1>&2 2>&3)
                 [ -n "$n" ] && save_setting "THEME" "$n" && CURRENT_THEME="$n" && setup_theme
                 ;;
             REMOTE)
@@ -474,12 +523,13 @@ if [ "$1" == "--backup-all" ]; then
     exit 0
 fi
 setup_theme
+boot_animation
 
 while true; do
     CHOICE=$(dialog --clear --backtitle "myBackUpTool $VERSION" --title "Main Menu" --menu "Select:" 17 60 7 \
     1 "Backup" 2 "Dirs" 3 "Settings" 4 "Logs" 5 "Info" 6 "Exit" 3>&1 1>&2 2>&3)
     case $CHOICE in
         1) perform_backup "interactive" ;; 2) manage_directories ;; 3) settings_menu ;; 4) view_logs ;;
-        5) info_section ;; 6) clear; break ;; *) clear; break ;;
+        5) info_section ;; 6) shutdown_animation; break ;; *) shutdown_animation; break ;;
     esac
 done
