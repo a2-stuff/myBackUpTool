@@ -303,19 +303,19 @@ settings_menu() {
         local th=$(read_setting "THEME" "matrix")
         local rem=$(read_setting "REMOTE" "$DEFAULT_REMOTE")
         local cmd=$(dialog --title "Configuration" --menu "Settings:" 18 60 9 \
-            1 "Theme [$th]" \
-            2 "Remote [$rem]" \
-            3 "Manage Ignores" \
-            4 "Automation" \
-            5 "Notifications" \
-            6 "Setup Cloud Access" \
-            7 "Back" 3>&1 1>&2 2>&3)
+            "THEME" "Theme [$th]" \
+            "REMOTE" "Remote [$rem]" \
+            "IGNORES" "Manage Ignores" \
+            "AUTOMATION" "Backup Scheduler" \
+            "NOTIFICATIONS" "Telegram Alerts" \
+            "CLOUD_SETUP" "Setup Cloud Access" \
+            "BACK" "Back" 3>&1 1>&2 2>&3)
         case $cmd in
-            1)
+            THEME)
                 local n=$(dialog --menu "Theme:" 15 50 8 "matrix" "Matrix" "retro" "Retro (Amber)" "cyberpunk" "Cyberpunk" "dracula" "Dracula" "oceanic" "Oceanic" "solarized" "Solarized Dark" "monokai" "Monokai Pro" "synthwave" "Synthwave '84" "classic" "Classic" 3>&1 1>&2 2>&3)
                 [ -n "$n" ] && save_setting "THEME" "$n" && CURRENT_THEME="$n" && setup_theme
                 ;;
-            2)
+            REMOTE)
                 local rlist=$(rclone listremotes)
                 if [ -n "$rlist" ]; then
                     local options=()
@@ -340,8 +340,8 @@ settings_menu() {
                     [ -n "$n" ] && save_setting "REMOTE" "$n" && CURRENT_REMOTE="$n"
                 fi
                 ;;
-            3) manage_ignores ;;
-            4)
+            IGNORES) manage_ignores ;;
+            AUTOMATION)
                  local sch_cmd=$(dialog --menu "Backup Scheduler" 15 50 6 "ENABLE" "Set/Edit Schedule" "DISABLE" "Disable Schedule" "STATUS" "Check Status" 3>&1 1>&2 2>&3)
                  case $sch_cmd in
                      ENABLE) schedule_backup ;;
@@ -352,6 +352,37 @@ settings_menu() {
                         ;;
                  esac
                  ;;
+            NOTIFICATIONS)
+                 local bot=$(read_setting "TG_BOT_TOKEN" "")
+                 local chat=$(read_setting "TG_CHAT_ID" "")
+                 
+                 local cmd=$(dialog --menu "Telegram Notifications" 15 60 6 "TOKEN" "Set Bot Token" "CHATID" "Set Chat ID" "TEST" "Send Test Message" "BACK" "Back" 3>&1 1>&2 2>&3)
+                 case $cmd in
+                     TOKEN)
+                        local n=$(dialog --inputbox "Enter Bot Token:" 8 60 "$bot" 3>&1 1>&2 2>&3)
+                        [ -n "$n" ] && save_setting "TG_BOT_TOKEN" "$n"
+                        ;;
+                     CHATID)
+                        local n=$(dialog --inputbox "Enter Chat ID:" 8 60 "$chat" 3>&1 1>&2 2>&3)
+                        [ -n "$n" ] && save_setting "TG_CHAT_ID" "$n"
+                        ;;
+                     TEST)
+                        send_telegram_notification "Test Message from myBackUpTool" "Test File"
+                        dialog --msgbox "Message sent (check logs if failed)." 6 40
+                        ;;
+                 esac
+                 ;;
+            CLOUD_SETUP)
+                clear
+                echo "---------------------------------------------------------"
+                echo " SYSTEM: Launching Cloud Configuration Wizard (rclone)   "
+                echo "---------------------------------------------------------"
+                echo "Follow instructions to add 'gdrive' or other remotes."
+                echo "Press ENTER to begin..."
+                read
+                rclone config
+                dialog --msgbox "Configuration wizard completed." 6 40
+                ;;
             BACK) return ;;
             *) ;;
         esac
