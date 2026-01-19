@@ -11,6 +11,7 @@ A futuristic, automated backup utility for Linux with Google Drive integration.
 - **Expert Ignores**: Exclude heavy folders like `node_modules` or `.git` with a checklist UI.
 - **Detailed Logging**: Captures specific error messages for easy debugging.
 - **Scheduled Backups**: Built-in cron scheduler managed via Settings.
+- **Telegram Notifications**: Instant alerts for successful backups (v1.5.0).
 
 ## Installation
 1.  **Dependencies**:
