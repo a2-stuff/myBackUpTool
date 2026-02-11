@@ -2,7 +2,7 @@
 
 ![myBackUpTool Demo](myBackUpTool.gif)
 
-A futuristic, automated backup utility for Linux with Google Drive integration.
+An automated backup utility for Linux with Google Drive integration.
 
 ## Features
 - **Cloud Integration**: Uploads securely to Google Drive (or any `rclone` provider).
